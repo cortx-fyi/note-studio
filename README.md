@@ -4,6 +4,8 @@ A browser-based editor for Anki note types and card templates. Import a `.colpkg
 
 ![Note Studio](https://img.shields.io/badge/runs%20in-browser-2563eb?style=flat-square) ![No server](https://img.shields.io/badge/no%20server-required-34d399?style=flat-square) ![iOS compatible](https://img.shields.io/badge/iOS-compatible-f59e0b?style=flat-square)
 
+**[→ Live demo: cortx.fyi/note-studio.html](https://cortx.fyi/note-studio.html)**
+
 -----
 
 ## Screenshots
@@ -39,7 +41,7 @@ A browser-based editor for Anki note types and card templates. Import a `.colpkg
 </table>
 
 
-
+> To add screenshots: create a `screenshots/` folder in the repo root and save the images as `welcome.png`, `preview.png`, `notes.png`, `media.png`, and `homescreen.png`.
 
 -----
 
