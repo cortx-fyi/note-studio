@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Note Studio</title>
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg:       #eef2f7;
+  --s1:       #f6f9fd;
+  --s2:       #edf1f8;
+  --s3:       #e2e8f2;
+  --s4:       #d6dff0;
+  --border:   #c8d4e8;
+  --border2:  #b0c0d8;
+  --a:        #2563eb;
+  --a2:       #1d4ed8;
+  --a-bg:     rgba(37,99,235,.08);
+  --a-bg2:    rgba(37,99,235,.15);
+  --text:     #1e2a3a;
+  --t2:       #4a5e78;
+  --t3:       #8fa3bc;
+  --green:    #059669;
+  --red:      #dc2626;
+  --yellow:   #d97706;
+  --cyan:     #0891b2;
+  --r:        6px;
+  --r2:       10px;
+  --mono:     'Geist Mono', monospace;
+  --sans:     'Geist', sans-serif;
+  --sidebar:  240px;
+  --topbar:   48px;
+  --ease:     cubic-bezier(.22,.68,0,1.2);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── LAYOUT ── */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── TOPBAR ── */
+#topbar {
+  height: var(--topbar); min-height: var(--topbar);
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  z-index: 200;
+}
+#logo {
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  letter-spacing: -.02em; color: var(--a2); flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+}
+#logo .dot { width: 8px; height: 8px; background: var(--a); border-radius: 50%; box-shadow: 0 0 6px rgba(37,99,235,.4); }
+.top-spacer { flex: 1; }
+.top-actions { display: flex; gap: 6px; align-items: center; }
+
+/* ── BODY ── */
+#body { display: flex; flex: 1; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  width: var(--sidebar); min-width: var(--sidebar);
+  background: var(--s1);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: transform .25s var(--ease);
+}
+.sb-head {
+  padding: 10px 12px 6px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sb-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--t3); }
+#nt-list { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+
+.nt-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background .12s, border-color .12s;
+  position: relative;
+}
+.nt-item:hover { background: var(--s2); }
+.nt-item.active { background: var(--a-bg); border-left-color: var(--a); }
+.nt-badge {
+  width: 22px; height: 22px; border-radius: 5px;
+  background: var(--s3); display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  color: var(--t2); flex-shrink: 0;
+  transition: background .12s, color .12s;
+}
+.nt-item.active .nt-badge { background: var(--a-bg2); color: var(--a2); }
+.nt-info { flex: 1; min-width: 0; }
+.nt-name { font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nt-meta { font-size: 10.5px; color: var(--t3); font-family: var(--mono); }
+.nt-item.active .nt-name { color: #fff; }
+
+/* ── CONTENT ── */
+#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── HEADER BAR (note type name + tabs) ── */
+#ntbar {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#nt-title-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px 0;
+}
+#nt-title {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#nt-type-chip {
+  font-family: var(--mono); font-size: 10px; padding: 2px 8px;
+  border-radius: 100px; background: var(--s3); color: var(--t2);
+  border: 1px solid var(--border2);
+}
+#tab-row {
+  display: flex; gap: 0; padding: 0 14px;
+  overflow-x: auto;
+}
+#tab-row::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 9px 14px 8px;
+  font-size: 12px; font-family: var(--mono);
+  color: var(--t2); cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color .12s, border-color .12s;
+  letter-spacing: .02em;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--a2); border-bottom-color: var(--a); }
+
+/* ── PANEL ── */
+#panel { flex: 1; overflow-y: auto; padding: 18px 16px 32px; }
+#panel > .panel-content { max-width: 780px; }
+
+/* ── EMPTY / WELCOME ── */
+#welcome {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 40px; text-align: center;
+}
+.welcome-icon {
+  font-size: 40px; width: 80px; height: 80px;
+  border: 1.5px dashed var(--border2);
+  border-radius: 18px; display: flex; align-items: center; justify-content: center;
+  color: var(--t3);
+}
+.welcome-title { font-size: 17px; font-weight: 600; }
+.welcome-sub { font-size: 13px; color: var(--t2); max-width: 300px; line-height: 1.6; }
+
+/* ── SECTION ── */
+.sec { margin-bottom: 22px; }
+.sec-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sec-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--t3); }
+
+/* ── CHIP ROW ── */
+.chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.chip {
+  background: var(--s2); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 5px 10px; font-size: 11px; font-family: var(--mono); color: var(--t2);
+}
+.chip strong { color: var(--text); }
+.chip.green { border-color: rgba(52,211,153,.3); color: var(--green); }
+.chip.mono-id { font-size: 10px; color: var(--t3); letter-spacing: .04em; }
+
+/* ── FIELD LIST ── */
+.field-list { display: flex; flex-direction: column; gap: 5px; }
+.field-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 11px;
+  background: var(--s2); border: 1px solid var(--border); border-radius: var(--r);
+  transition: border-color .12s;
+}
+.field-row:focus-within { border-color: var(--a); }
+.drag-handle {
+  cursor: grab; color: var(--t3); font-size: 14px;
+  padding: 2px 4px; flex-shrink: 0; touch-action: none; user-select: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.field-row.dragging { opacity: .35; }
+.field-row.drag-over { border-color: var(--a); background: var(--a-bg); }
+.field-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: var(--mono); font-size: 12.5px;
+}
+.field-input::placeholder { color: var(--t3); }
+.ord-badge {
+  font-family: var(--mono); font-size: 9px; color: var(--t3);
+  background: var(--s3); padding: 2px 5px; border-radius: 4px; flex-shrink: 0;
+}
+.sort-star { cursor: pointer; color: var(--t3); font-size: 13px; flex-shrink: 0; transition: color .12s; }
+.sort-star.active { color: var(--yellow); }
+
+/* ── TEMPLATE PICKER ── */
+.tmpl-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tmpl-chip {
+  padding: 6px 14px;
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: var(--r); font-size: 12px; cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s;
+  font-family: var(--mono);
+  color: var(--t2);
+}
+.tmpl-chip:hover { border-color: var(--border2); color: var(--text); }
+.tmpl-chip.active { background: var(--a-bg); border-color: var(--a); color: var(--a2); }
+
+/* ── CODE EDITOR ── */
+.code-area {
+  width: 100%; min-height: 130px;
+  background: var(--s2); border: 1px solid var(--border); border-radius: var(--r);
+  color: var(--text); font-family: var(--mono); font-size: 12px; line-height: 1.65;
+  padding: 11px 13px; resize: vertical; outline: none;
+  transition: border-color .12s;
+  tab-size: 2;
+}
+.code-area:focus { border-color: var(--a); }
+.code-area.css-area { min-height: 110px; }
+
+/* ── TEMPLATE SUB-TABS ── */
+.tmpl-sub-tabs {
+  display: flex; gap: 0;
+  border: 1px solid var(--border); border-radius: var(--r);
+  overflow: hidden; margin-bottom: 16px; flex-shrink: 0;
+}
+.tmpl-sub-tab {
+  flex: 1; padding: 8px 12px; text-align: center;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+  color: var(--t2); cursor: pointer; background: var(--s2);
+  border: none; border-right: 1px solid var(--border);
+  transition: background .12s, color .12s;
+  letter-spacing: .03em;
+}
+.tmpl-sub-tab:last-child { border-right: none; }
+.tmpl-sub-tab:hover { background: var(--s3); color: var(--text); }
+.tmpl-sub-tab.active { background: var(--a); color: #fff; }
+.tmpl-sub-tab.active:hover { background: var(--a2); }
+.tmpl-sub-panel { display: none; }
+.tmpl-sub-panel.active { display: block; }
+.field-token-list { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.field-token {
+  font-family: var(--mono); font-size: 10.5px;
+  background: var(--s3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 7px; color: var(--t2);
+  cursor: pointer; transition: background .1s, color .1s, border-color .1s;
+  user-select: none;
+}
+.field-token:hover { background: var(--a-bg); border-color: var(--a); color: var(--a2); }
+
+/* ── PREVIEW ── */
+.preview-wrap {
+  background: #fff; border-radius: var(--r2);
+  overflow: hidden; border: 1px solid var(--border);
+  margin-top: 12px;
+}
+.preview-topbar {
+  background: var(--s2); padding: 7px 12px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.preview-dots { display: flex; gap: 5px; }
+.preview-dot { width: 9px; height: 9px; border-radius: 50%; }
+.d1 { background: #ff5f57; } .d2 { background: #febc2e; } .d3 { background: #28c840; }
+.preview-title { font-family: var(--mono); font-size: 10px; color: var(--t3); flex: 1; text-align: center; }
+.flip-btn { font-family: var(--mono); font-size: 10px; color: var(--a2); cursor: pointer; background: none; border: none; padding: 0; }
+.preview-frame { width: 100%; border: none; min-height: 180px; display: block; }
+
+/* ── PREVIEW FIELDS ── */
+.pf-grid { display: grid; grid-template-columns: 90px 1fr; gap: 6px 8px; align-items: center; margin-bottom: 14px; }
+.pf-label { font-family: var(--mono); font-size: 11px; color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-input {
+  background: var(--s2); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text); font-family: var(--mono); font-size: 12px;
+  padding: 5px 8px; outline: none; width: 100%;
+  transition: border-color .12s;
+}
+.pf-input:focus { border-color: var(--a); }
+
+/* ── NOTES TABLE ── */
+.table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--r); }
+.nt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.nt-table th {
+  padding: 8px 12px; text-align: left;
+  font-family: var(--mono); font-size: 10px; color: var(--t3);
+  text-transform: uppercase; letter-spacing: .07em;
+  border-bottom: 1px solid var(--border);
+  background: var(--s2); white-space: nowrap; position: sticky; top: 0;
+}
+.nt-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--t2); vertical-align: middle;
+}
+.nt-table td.id-cell { font-family: var(--mono); font-size: 10px; color: var(--t3); }
+.nt-table tr:last-child td { border-bottom: none; }
+.nt-table tr:hover td { background: var(--s2); color: var(--text); }
+.nt-table tr.selected td { background: var(--a-bg); }
+.use-note-btn {
+  font-size: 10px; font-family: var(--mono); color: var(--a2);
+  background: none; border: none; cursor: pointer; padding: 2px 6px;
+  border-radius: 4px; white-space: nowrap;
+}
+.use-note-btn:hover { background: var(--a-bg); }
+
+/* ── MEDIA ── */
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+.media-card {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden; cursor: pointer;
+  transition: border-color .12s;
+}
+.media-card:hover { border-color: var(--border2); }
+.media-thumb {
+  width: 100%; height: 80px; object-fit: cover;
+  display: block; background: var(--s3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: var(--t3);
+}
+.media-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.media-name {
+  padding: 5px 7px; font-family: var(--mono); font-size: 10px;
+  color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.media-actions { padding: 0 7px 6px; display: flex; gap: 4px; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 13px; border-radius: var(--r);
+  border: 1px solid transparent; cursor: pointer;
+  font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+  transition: opacity .12s, background .12s, border-color .12s;
+  text-decoration: none; white-space: nowrap;
+}
+.btn:active { opacity: .75; }
+.btn-primary { background: var(--a); color: #fff; border-color: var(--a); }
+.btn-primary:hover { background: var(--a2); }
+.btn-ghost { background: var(--s2); color: var(--t2); border-color: var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+.btn-danger { background: transparent; color: var(--red); border-color: rgba(220,38,38,.35); }
+.btn-danger:hover { background: rgba(220,38,38,.07); }
+.btn-sm { padding: 4px 10px; font-size: 11.5px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; }
+.btn-icon { padding: 5px 8px; }
+
+/* ── FORM ── */
+.form-input {
+  width: 100%; background: var(--s2); border: 1px solid var(--border);
+  border-radius: var(--r); color: var(--text);
+  font-family: var(--sans); font-size: 13px;
+  padding: 8px 11px; outline: none;
+  transition: border-color .12s;
+}
+.form-input:focus { border-color: var(--a); }
+
+/* ── DOWNLOAD BAR ── */
+#dl-bar {
+  background: var(--s2); border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+#dl-bar.show { display: flex; }
+.dl-label { font-family: var(--mono); font-size: 11px; color: var(--t2); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(30,42,58,.35);
+  z-index: 900; display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--r2); width: 100%; max-width: 520px;
+  max-height: 80vh; display: flex; flex-direction: column;
+  animation: pop .18s var(--ease);
+}
+@keyframes pop { from { opacity:0; transform: scale(.95); } to { opacity:1; transform: scale(1); } }
+.modal-head {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 14px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--t2); cursor: pointer; font-size: 18px; line-height: 1; }
+.modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+.modal-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: var(--a); border: 1px solid var(--a2);
+  padding: 9px 18px; border-radius: 100px;
+  font-family: var(--mono); font-size: 12px; color: #fff;
+  z-index: 9999; transition: transform .25s var(--ease);
+  white-space: nowrap; pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+#toast.ok { background: var(--green); border-color: var(--green); }
+#toast.err { background: var(--red); border-color: var(--red); }
+
+/* ── LOADER ── */
+#loader {
+  position: fixed; inset: 0; background: rgba(238,242,247,.85);
+  z-index: 9990; display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+}
+#loader.on { display: flex; }
+.spinner { width: 30px; height: 30px; border: 2.5px solid var(--border); border-top-color: var(--a); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-msg { font-family: var(--mono); font-size: 12px; color: var(--text); }
+
+/* ── DROP OVERLAY ── */
+#drop-mask {
+  position: fixed; inset: 0; background: rgba(37,99,235,.10);
+  border: 2px dashed var(--a); border-radius: 10px; z-index: 9980;
+  display: none; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#drop-mask.show { display: flex; }
+.drop-msg { font-size: 18px; font-weight: 600; color: var(--a2); }
+
+/* ── MOBILE ── */
+#mb-toggle { display: none; }
+#sb-overlay { display: none; position: fixed; inset: 0; background: rgba(30,42,58,.3); z-index: 150; }
+
+@media (max-width: 640px) {
+  :root { --sidebar: 230px; }
+  #sidebar { position: fixed; left: 0; top: var(--topbar); bottom: 0; z-index: 160; transform: translateX(-100%); }
+  #sidebar.open { transform: none; box-shadow: 4px 0 20px rgba(0,0,0,.5); }
+  #sb-overlay.show { display: block; }
+  #mb-toggle { display: flex; }
+  #panel { padding: 14px 12px 80px; }
+  .pf-grid { grid-template-columns: 70px 1fr; }
+  #ntbar { display: none; }
+  #ntbar.show { display: block; }
+  .chip-row { gap: 5px; }
+}
+
+/* ── UTILS ── */
+.row { display: flex; align-items: center; gap: 8px; }
+.row-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.mt4 { margin-top: 4px; } .mt8 { margin-top: 8px; } .mt12 { margin-top: 12px; } .mt16 { margin-top: 16px; }
+.mb4 { margin-bottom: 4px; } .mb8 { margin-bottom: 8px; } .mb12 { margin-bottom: 12px; }
+.ml-auto { margin-left: auto; }
+.text-dim { color: var(--t2); }
+.text-xs { font-size: 11px; font-family: var(--mono); color: var(--t3); }
+.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+</style>
+</head>
+<body>
+
+<div id="app">
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <button id="mb-toggle" class="btn btn-ghost btn-icon btn-sm" onclick="toggleSb()">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+  <div id="logo"><div class="dot"></div>note.studio</div>
+  <div class="top-spacer"></div>
+  <div class="top-actions">
+    <label class="btn btn-primary btn-sm" style="cursor:pointer">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M16 8l-4-4m0 0L8 8m4-4v12"/></svg>
+      Import
+      <input type="file" id="file-input" accept=".apkg,.colpkg,.anki2" style="display:none" onchange="handleFile(this)">
+    </label>
+    <button class="btn btn-ghost btn-sm" onclick="newNT()">+ Note type</button>
+    <button class="btn btn-ghost btn-sm btn-icon" onclick="openModal('about-modal')" title="About">?</button>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="showDebugLog()" title="Open debug log" id="debug-btn" style="font-family:var(--mono);font-size:10px;color:var(--t3);opacity:0.5" aria-label="Debug log">log</button>
+  </div>
+</div>
+
+<!-- BODY -->
+<div id="body">
+  <div id="sb-overlay" onclick="closeSb()"></div>
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-head">
+      <span class="sb-label">Note Types</span>
+      <span id="nt-count" class="text-xs">0</span>
+    </div>
+    <div id="nt-list"></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+    <!-- NOTE TYPE BAR -->
+    <div id="ntbar">
+      <div id="nt-title-row">
+        <span id="nt-title">–</span>
+        <span id="nt-type-chip">standard</span>
+        <button class="btn btn-ghost btn-xs" onclick="openRenameModal()" title="Rename">✎</button>
+      </div>
+      <div id="tab-row">
+        <div class="tab active" data-tab="fields" onclick="switchTab(this)">Fields</div>
+        <div class="tab" data-tab="templates" onclick="switchTab(this)">Templates</div>
+        <div class="tab" data-tab="preview" onclick="switchTab(this)">Preview</div>
+        <div class="tab" data-tab="notes" onclick="switchTab(this)">Notes</div>
+        <div class="tab" data-tab="media" onclick="switchTab(this)">Media</div>
+      </div>
+    </div>
+
+    <!-- PANEL -->
+    <div id="panel">
+      <!-- Welcome -->
+      <div id="welcome">
+        <div class="welcome-icon">🃏</div>
+        <div class="welcome-title">Note Studio</div>
+        <div class="welcome-sub">Import a <code>.colpkg</code>, <code>.apkg</code>, or <code>.anki2</code> file to inspect and edit note types, or start fresh.</div>
+        <div class="row mt12" style="flex-wrap:wrap;justify-content:center;gap:8px;">
+          <label class="btn btn-primary" style="cursor:pointer">
+            Import deck
+            <input type="file" accept=".apkg,.colpkg,.anki2" style="display:none" onchange="handleFile(this)">
+          </label>
+          <button class="btn btn-ghost" onclick="loadDemo()">Try demo</button>
+        </div>
+        <div class="text-xs mt8">Drop a file anywhere on this page</div>
+      </div>
+
+      <!-- Panels -->
+      <div class="panel-content" id="fields-p" style="display:none"></div>
+      <div class="panel-content" id="templates-p" style="display:none"></div>
+      <div class="panel-content" id="preview-p" style="display:none"></div>
+      <div class="panel-content" id="notes-p" style="display:none"></div>
+      <div class="panel-content" id="media-p" style="display:none"></div>
+    </div>
+
+    <!-- DOWNLOAD BAR -->
+    <div id="dl-bar">
+      <span class="dl-label">Export modified note types:</span>
+      <button class="btn btn-ghost btn-sm" onclick="downloadJSON()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12l4 4m0 0l4-4m-4 4V4"/></svg>
+        models.json
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12l4 4m0 0l4-4m-4 4V4"/></svg>
+        notes.csv
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="downloadAPKG()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12l4 4m0 0l4-4m-4 4V4"/></svg>
+        Export .apkg
+      </button>
+      <button class="btn btn-ghost btn-sm ml-auto" onclick="hideDlBar()">✕</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- RENAME MODAL -->
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Rename Note Type</span>
+      <button class="modal-close" onclick="closeModal('rename-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input class="form-input" id="rename-input" placeholder="Note type name">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('rename-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="doRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT MODAL -->
+<div class="modal-overlay" id="about-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Note Studio</span>
+      <button class="modal-close" onclick="closeModal('about-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--t2);font-size:13px;line-height:1.7;">
+        A browser-based Anki note type editor. Import <code>.colpkg</code>, <code>.apkg</code>, or <code>.anki2</code> files. Everything runs locally — no data leaves your device.
+      </p>
+      <hr class="divider">
+      <div class="text-xs" style="line-height:1.8;">
+        <div>• <strong>Fields</strong> — rename, reorder, add, remove fields</div>
+        <div>• <strong>Templates</strong> — edit front/back HTML + CSS</div>
+        <div>• <strong>Preview</strong> — live card rendering with field inputs</div>
+        <div>• <strong>Notes</strong> — browse notes, click to load into preview</div>
+        <div>• <strong>Media</strong> — view and download embedded media files</div>
+        <div>• <strong>Export</strong> — download as JSON, CSV, or .apkg</div>
+      </div>
+      <hr class="divider">
+      <div class="text-xs">Built from the Anki open-source codebase (AGPL-3.0)</div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="spinner"></div>
+  <div class="loader-msg" id="loader-msg">Loading…</div>
+</div>
+
+<!-- DROP MASK -->
+<div id="drop-mask"><div class="drop-msg">Drop to import</div></div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+
+// ══════════════════════════════════════════════════════════════════
+// LIBRARY LOADING — async with fallbacks, never blocks render
+// ══════════════════════════════════════════════════════════════════
+(function() {
+  var _libs = { jszip: null, sqljs: null, fzstd: null };
+  window._libs = _libs;
+
+  function loadScript(urls, name, cb) {
+    var url = urls.shift();
+    if (!url) { if (cb) cb(new Error('All CDNs failed: ' + name)); return; }
+    var s = document.createElement('script');
+    s.src = url; s.async = true;
+    s.onload  = function() { cb(null); };
+    s.onerror = function() { document.head.removeChild(s); loadScript(urls, name, cb); };
+    document.head.appendChild(s);
+  }
+
+  function checkLibs() {
+    if (_libs.jszip === true && _libs.sqljs === true && !window._sqlInited) {
+      window._sqlInited = true;
+      initSqlJs({ locateFile: function(f) { return 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/' + f; } })
+        .then(function(s) { window.SQL = s; _showReady(); })
+        .catch(function(e) { /* sql.js init failed silently */ });
+    }
+    if (Object.values(_libs).every(function(v) { return v !== null; }) && _libs.fzstd === false) {
+      /* fzstd unavailable */
+    }
+  }
+
+  function _showReady() {
+    var show = function() {
+      var el = document.getElementById('toast');
+      if (el) { el.textContent = 'Ready'; el.className = 'show ok'; setTimeout(function() { el.className = ''; }, 2000); }
+    };
+    if (document.readyState === 'complete') show(); else window.addEventListener('load', show);
+  }
+
+  loadScript([
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'
+  ], 'JSZip', function(e) { _libs.jszip = !e; checkLibs(); });
+
+  loadScript([
+    'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js',
+    'https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js'
+  ], 'sql.js', function(e) { _libs.sqljs = !e; checkLibs(); });
+
+  loadScript([
+    'https://cdn.jsdelivr.net/npm/fzstd@0.1.1/umd/index.js',
+    'https://unpkg.com/fzstd@0.1.1/umd/index.js'
+  ], 'fzstd', function(e) { _libs.fzstd = !e; checkLibs(); });
+})();
+
+// ══════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════
+var S = {
+  noteTypes: {}, notes: [], media: {}, mediaBlobs: {}, _mediaUrls: {},
+  rawDb: null, filename: '', selected: null, cardIdx: 0,
+  activeTab: 'fields', previewSide: 'front', pf: {},
+  dirty: false, tmplSubTab: 'front',
+};
+
+// ══════════════════════════════════════════════════════════════════
+// DEBUG LOG — always collecting, hidden until log button pressed
+// ══════════════════════════════════════════════════════════════════
+var DBG = [];
+
+function _fmt(x) {
+  if (x === undefined || x === null) return '';
+  if (typeof x === 'string') return x;
+  if (Array.isArray(x)) {
+    return '[' + x.slice(0,8).map(_fmt).join(', ') + (x.length > 8 ? '...' : '') + ']';
+  }
+  if (x instanceof Uint8Array) {
+    var hex = Array.from(x.slice(0,8)).map(function(b) { return b.toString(16).padStart(2,'0'); }).join(' ');
+    return 'Uint8Array(' + x.length + ')[' + hex + (x.length > 8 ? '...' : '') + ']';
+  }
+  if (typeof x === 'object') {
+    try { return JSON.stringify(x, function(k,v) { return v instanceof Uint8Array ? 'Uint8Array('+v.length+')' : v; }).slice(0,300); }
+    catch(e) { return String(x); }
+  }
+  return String(x);
+}
+
+function dbg(msg, data) {
+  DBG.push({ t: new Date().toISOString().slice(11,23), msg: msg, data: _fmt(data) });
+  /* logged to DBG only */
+}
+
+function dbgErr(msg, err, data) {
+  var errStr = (err && err.message) ? err.message : String(err);
+  DBG.push({ t: new Date().toISOString().slice(11,23), msg: msg, err: errStr, data: _fmt(data) });
+  /* logged to DBG only */
+}
+
+function showDebugLog() {
+  var existing = document.getElementById('log-panel');
+  if (existing) { existing.remove(); return; }
+
+  var lines = DBG.map(function(e) {
+    var d = e.data ? '\n    ' + e.data : '';
+    var er = e.err ? '\n    \u2717 ' + e.err : '';
+    return '[' + e.t + '] ' + e.msg + d + er;
+  }).join('\n\n');
+
+  var safe = lines
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/\[(\d\d:\d\d:\d\d\.\d+)\]/g, '<b style="color:#6b8cba">[$1]</b>')
+    .replace(/(\u2717[^\n]+)/g, '<b style="color:#f87171">$1</b>');
+
+  var panel = document.createElement('div');
+  panel.id = 'log-panel';
+  panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:52vh;background:#0d1117;border-top:2px solid #2563eb;z-index:9990;display:flex;flex-direction:column;box-shadow:0 -8px 32px rgba(0,0,0,.4)';
+
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;align-items:center;padding:8px 14px;border-bottom:1px solid #1e2a3a;flex-shrink:0';
+
+  var lbl = document.createElement('span');
+  lbl.style.cssText = 'font-family:monospace;font-size:11px;color:#6b8cba;letter-spacing:.06em';
+  lbl.textContent = 'DEBUG LOG \u2014 ' + DBG.length + ' entries';
+
+  var copyBtn = document.createElement('button');
+  copyBtn.style.cssText = 'margin-left:auto;background:none;border:1px solid #2a3a4a;color:#6b8cba;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;font-family:monospace';
+  copyBtn.textContent = 'copy';
+  copyBtn.onclick = function() {
+    var pre = document.getElementById('log-pre');
+    if (navigator.clipboard && pre) {
+      navigator.clipboard.writeText(pre.innerText).then(function() { toast('Copied', 'ok'); });
+    }
+  };
+
+  var closeBtn = document.createElement('button');
+  closeBtn.style.cssText = 'margin-left:8px;background:none;border:none;color:#6b8cba;font-size:22px;cursor:pointer;line-height:1;padding:0 6px';
+  closeBtn.textContent = '\xd7';
+  closeBtn.onclick = function() { panel.remove(); };
+
+  var pre = document.createElement('pre');
+  pre.id = 'log-pre';
+  pre.style.cssText = 'flex:1;overflow-y:auto;margin:0;padding:12px 14px;font:11.5px/1.7 Menlo,Consolas,monospace;color:#c8d8e8;white-space:pre-wrap;word-break:break-all';
+  pre.innerHTML = safe || '<span style="color:#3a4a5a">No entries yet \u2014 import a file first.</span>';
+
+  hdr.appendChild(lbl); hdr.appendChild(copyBtn); hdr.appendChild(closeBtn);
+  panel.appendChild(hdr); panel.appendChild(pre);
+  document.body.appendChild(panel);
+  setTimeout(function() { pre.scrollTop = pre.scrollHeight; }, 30);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FILE IMPORT
+// ══════════════════════════════════════════════════════════════════
+function handleFile(inp) {
+  if (!inp.files[0]) return;
+  importFile(inp.files[0]);
+  inp.value = '';
+}
+
+async function importFile(file) {
+  if (!window.SQL) { toast('Engine not ready — wait a moment', 'err'); return; }
+  DBG.length = 0;
+  dbg('Import started', { name: file.name, size: file.size });
+  load('Reading ' + file.name + '…');
+  try {
+    S.filename = file.name.replace(/\.(colpkg|apkg|anki2)$/i, '');
+    S.media = {}; S.mediaBlobs = {}; S._mediaUrls = {};
+    var ext = file.name.split('.').pop().toLowerCase();
+    var dbBytes;
+
+    if (ext === 'anki2') {
+      dbBytes = new Uint8Array(await file.arrayBuffer());
+      dbg('Direct .anki2', { size: dbBytes.length });
+    } else {
+      load('Unzipping…');
+      var zip = await JSZip.loadAsync(file);
+      var zipFiles = Object.keys(zip.files);
+      dbg('Zip contents', zipFiles.join(', '));
+
+      // Detect version via meta protobuf
+      var version = 1;
+      var metaEntry = zip.file('meta');
+      if (metaEntry) {
+        var mb = await metaEntry.async('uint8array');
+        if (mb.length >= 2 && mb[0] === 0x08) version = mb[1];
+        dbg('meta version', version);
+      } else {
+        if (zip.file('collection.anki21')) version = 2;
+        else version = 1;
+        dbg('No meta, inferred version', version);
+      }
+      var isLatest = (version === 3);
+      dbg('Format', isLatest ? 'anki21b+zstd' : version === 2 ? 'anki21' : 'anki2');
+
+      // Pick DB file
+      var dbEntry = isLatest ? zip.file('collection.anki21b') :
+                   (version === 2 ? zip.file('collection.anki21') : zip.file('collection.anki2'));
+      if (!dbEntry) dbEntry = zip.file('collection.anki21b') || zip.file('collection.anki21') || zip.file('collection.anki2');
+      if (!dbEntry) throw new Error('No collection DB in zip. Files: ' + zipFiles.join(', '));
+      dbg('Using', dbEntry.name);
+
+      var rawDb = await dbEntry.async('uint8array');
+      dbg('Raw DB size', rawDb.length);
+
+      if (isLatest) {
+        load('Decompressing…');
+        dbBytes = await decompressZstd(rawDb);
+        dbg('Decompressed DB', dbBytes.length);
+      } else {
+        dbBytes = rawDb;
+      }
+
+      // Media
+      var mediaEntry = zip.file('media');
+      if (mediaEntry) {
+        var mb2 = await mediaEntry.async('uint8array');
+        dbg('Media bytes', { size: mb2.length, firstByte: mb2[0] ? mb2[0].toString(16) : 'empty' });
+        if (isLatest) {
+          try {
+            var mDec = await decompressZstd(mb2);
+            dbg('Media decompressed', mDec.length);
+            var entries = parseMediaEntries(mDec);
+            dbg('Media entries', entries.length);
+            entries.forEach(function(e, i) { S.media[String(i)] = e.name; });
+          } catch(me) { dbgErr('Media parse failed (non-fatal)', me); }
+        } else {
+          try {
+            S.media = JSON.parse(new TextDecoder().decode(mb2));
+            dbg('Legacy media', Object.keys(S.media).length);
+          } catch(me) { dbgErr('Legacy media JSON failed', me); }
+        }
+        dbg('Media map', Object.keys(S.media).length + ' files');
+        // Load blobs
+        var loaded = 0;
+        for (var key in S.media) {
+          var fname = S.media[key];
+          var e2 = zip.file(key);
+          if (!e2) continue;
+          try {
+            var raw2 = await e2.async('uint8array');
+            if (isLatest) { try { raw2 = await decompressZstd(raw2); } catch(_) {} }
+            S.mediaBlobs[fname] = raw2;
+            loaded++;
+          } catch(_) {}
+        }
+        dbg('Media blobs loaded', loaded);
+      }
+    }
+
+    S.rawDb = dbBytes;
+    var magic = new TextDecoder().decode(dbBytes.slice(0,15));
+    dbg('SQLite header', magic);
+    if (!magic.startsWith('SQLite format')) {
+      throw new Error('Not valid SQLite. Header: ' + JSON.stringify(magic));
+    }
+
+    load('Parsing…');
+    var db = new SQL.Database(dbBytes);
+    var tr = db.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+    var tableNames = tr.length ? tr[0].values.map(function(r) { return r[0]; }) : [];
+    dbg('Tables', tableNames.join(', '));
+
+    parseDb(db, tableNames);
+    db.close();
+    dbg('Done', { noteTypes: Object.keys(S.noteTypes).length, notes: S.notes.length });
+    toast('Imported ' + file.name, 'ok');
+  } catch(e) {
+    dbgErr('Import FAILED', e);
+    toast(e.message.slice(0,80), 'err');
+    document.getElementById('welcome').style.display = 'flex';
+    var errDiv = document.createElement('div');
+    errDiv.style.cssText = 'margin-top:16px;padding:14px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;max-width:440px;text-align:left';
+    errDiv.innerHTML = '<div style="font-weight:600;color:#dc2626;font-size:13px;margin-bottom:6px">Import failed</div>'
+      + '<div style="font-family:monospace;font-size:11px;color:#7f1d1d;word-break:break-all;line-height:1.6">' + h(e.message) + '</div>'
+      + '<button onclick="showDebugLog()" style="margin-top:10px;padding:6px 12px;background:#dc2626;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px">View log \u2192</button>';
+    document.getElementById('welcome').appendChild(errDiv);
+  } finally { unload(); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ZSTD + PROTOBUF
+// ══════════════════════════════════════════════════════════════════
+async function decompressZstd(bytes) {
+  // Try native first (Chrome 123+, Firefox 113+)
+  if (typeof DecompressionStream !== 'undefined') {
+    try {
+      var ds = new DecompressionStream('zstd');
+      var w = ds.writable.getWriter();
+      var r = ds.readable.getReader();
+      w.write(bytes); w.close();
+      var chunks = [], total = 0;
+      while (true) {
+        var res = await r.read();
+        if (res.done) break;
+        chunks.push(res.value); total += res.value.length;
+      }
+      var out = new Uint8Array(total), off = 0;
+      chunks.forEach(function(c) { out.set(c, off); off += c.length; });
+      dbg('zstd: native', out.length);
+      return out;
+    } catch(_) { dbg('zstd: native failed, trying fzstd'); }
+  }
+  // fzstd fallback (pure JS, works on iOS)
+  if (typeof fzstd !== 'undefined' && fzstd.decompress) {
+    dbg('zstd: fzstd');
+    return fzstd.decompress(bytes);
+  }
+  throw new Error('No zstd decompressor. Need Chrome 123+, Firefox 113+, or fzstd to load.');
+}
+
+function pbVarint(buf, pos) {
+  var r = 0, s = 0, b;
+  do { b = buf[pos++]; r |= (b & 0x7f) << s; s += 7; } while (b & 0x80);
+  return [r, pos];
+}
+
+function pbDecode(buf) {
+  var out = new Map(), pos = 0, tag, fn, wt, val, len, res;
+  while (pos < buf.length) {
+    res = pbVarint(buf, pos); tag = res[0]; pos = res[1];
+    fn = tag >>> 3; wt = tag & 7;
+    if (wt === 0) { res = pbVarint(buf, pos); val = res[0]; pos = res[1]; }
+    else if (wt === 2) { res = pbVarint(buf, pos); len = res[0]; pos = res[1]; val = buf.slice(pos, pos+len); pos += len; }
+    else if (wt === 1) { val = buf.slice(pos, pos+8); pos += 8; }
+    else if (wt === 5) { val = buf.slice(pos, pos+4); pos += 4; }
+    else { break; }
+    if (!out.has(fn)) out.set(fn, []);
+    out.get(fn).push({ t: wt === 0 ? 'vi' : wt === 2 ? 'ld' : 'other', v: val });
+  }
+  return out;
+}
+
+var _td = new TextDecoder();
+function pbStr(b) { return _td.decode(b); }
+function pbFirst(m, n) { var a = m.get(n); return a && a.length ? a[0] : null; }
+function pbStrField(m, n, d) { var e = pbFirst(m,n); return (e && e.t==='ld') ? pbStr(e.v) : (d||''); }
+function pbIntField(m, n, d) { var e = pbFirst(m,n); return (e && e.t==='vi') ? e.v : (d||0); }
+function pbBool(m, n) { return pbIntField(m,n,0) !== 0; }
+
+function parseMediaEntries(bytes) {
+  var entries = [], outer = pbDecode(bytes), blobs = outer.get(1) || [];
+  blobs.forEach(function(blob) {
+    if (blob.t !== 'ld') return;
+    var inner = pbDecode(blob.v);
+    var name = pbStrField(inner, 1, '');
+    if (name) entries.push({ name: name });
+  });
+  return entries;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DATABASE PARSING
+// ══════════════════════════════════════════════════════════════════
+function parseNewSchema(db) {
+  dbg('parseNewSchema');
+  var ntRes = db.exec('SELECT id, name, config FROM notetypes ORDER BY id');
+  if (!ntRes.length || !ntRes[0].values.length) { dbg('notetypes table empty'); return null; }
+
+  var fRes = db.exec('SELECT ntid, ord, name, config FROM fields ORDER BY ntid, ord');
+  var tRes = db.exec('SELECT ntid, ord, name, config FROM templates ORDER BY ntid, ord');
+
+  var fieldsByNt = {}, tmplsByNt = {};
+  if (fRes.length) fRes[0].values.forEach(function(r) {
+    var ntid=r[0], ord=r[1], name=r[2], blob=r[3];
+    if (!fieldsByNt[ntid]) fieldsByNt[ntid] = [];
+    var cfg = pbDecode(blob);
+    fieldsByNt[ntid].push({ ord:ord, name:name, sticky:pbBool(cfg,1), rtl:pbBool(cfg,2), font:pbStrField(cfg,3,'Arial'), size:pbIntField(cfg,4,20) });
+  });
+  if (tRes.length) tRes[0].values.forEach(function(r) {
+    var ntid=r[0], ord=r[1], name=r[2], blob=r[3];
+    if (!tmplsByNt[ntid]) tmplsByNt[ntid] = [];
+    var cfg = pbDecode(blob);
+    tmplsByNt[ntid].push({ ord:ord, name:name, qfmt:pbStrField(cfg,1,''), afmt:pbStrField(cfg,2,'') });
+  });
+
+  var counts = {};
+  try { var cr = db.exec('SELECT mid, count(*) FROM notes GROUP BY mid'); if (cr.length) cr[0].values.forEach(function(r){ counts[String(r[0])]=r[1]; }); } catch(_){}
+
+  var result = {};
+  ntRes[0].values.forEach(function(r) {
+    var id=r[0], name=r[1], blob=r[2], mid=String(id);
+    var cfg = pbDecode(blob);
+    result[mid] = {
+      id:mid, name:name,
+      type: pbIntField(cfg,1,0), sortf: pbIntField(cfg,2,0), css: pbStrField(cfg,3,''),
+      flds: (fieldsByNt[id]||[]).sort(function(a,b){return a.ord-b.ord;}),
+      tmpls: (tmplsByNt[id]||[]).sort(function(a,b){return a.ord-b.ord;}),
+      noteCount: counts[mid]||0,
+    };
+  });
+  dbg('parseNewSchema done', Object.keys(result).length);
+  return result;
+}
+
+function parseOldSchema(db) {
+  dbg('parseOldSchema');
+  var col = db.exec('SELECT models FROM col LIMIT 1');
+  if (!col.length) throw new Error('No col table');
+  var raw = col[0].values[0][0];
+  dbg('col.models', { len: (raw||'').length, preview: String(raw||'').slice(0,100) });
+
+  if (!raw || raw.trim() === '{}' || raw.trim() === 'null') {
+    throw new Error('col.models is empty — new schema db with empty notetypes table');
+  }
+  raw = raw.replace(/:\s*NaN\b/g,':null').replace(/:\s*Infinity\b/g,':null').replace(/:\s*-Infinity\b/g,':null');
+
+  var modelsRaw;
+  try { modelsRaw = JSON.parse(raw); }
+  catch(e) {
+    var m = e.message.match(/position (\d+)/i);
+    var ctx = m ? raw.slice(Math.max(0,+m[1]-30), +m[1]+40) : raw.slice(0,200);
+    throw new Error('models JSON error: ' + e.message + ' | context: ' + ctx);
+  }
+
+  var counts = {};
+  try { var cr=db.exec('SELECT mid,count(*) FROM notes GROUP BY mid'); if(cr.length) cr[0].values.forEach(function(r){counts[String(r[0])]=r[1];}); } catch(_){}
+
+  var result = {};
+  Object.entries(modelsRaw).forEach(function(kv) {
+    var mid=kv[0], m=kv[1];
+    if (!m || typeof m !== 'object') return;
+    try {
+      result[mid] = {
+        id:mid, name:m.name||('Model '+mid), type:m.type||0, sortf:m.sortf||0, css:m.css||'',
+        flds:(m.flds||[]).map(function(f,i){return{name:f.name||('F'+i),ord:f.ord!=null?f.ord:i,sticky:!!f.sticky,rtl:!!f.rtl,font:f.font||'Arial',size:f.size||20};}),
+        tmpls:(m.tmpls||[]).map(function(t,i){return{name:t.name||('Card'+i),ord:t.ord!=null?t.ord:i,qfmt:t.qfmt||'',afmt:t.afmt||''};}),
+        noteCount:counts[mid]||0,
+      };
+    } catch(me) { dbgErr('bad model', me, mid); }
+  });
+  dbg('parseOldSchema done', Object.keys(result).length);
+  return result;
+}
+
+function parseDb(db, tableNames) {
+  if (!tableNames) {
+    try { var t=db.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"); tableNames=t.length?t[0].values.map(function(r){return r[0];}):[];} catch(_){tableNames=[];}
+  }
+  var hasNew = tableNames.indexOf('notetypes') >= 0;
+  dbg('Schema', hasNew ? 'new (notetypes table)' : 'old (col.models)');
+
+  var noteTypes = null;
+  if (hasNew) { try { noteTypes = parseNewSchema(db); } catch(e) { dbgErr('parseNewSchema failed', e); } }
+  if (!noteTypes) { noteTypes = parseOldSchema(db); }
+
+  var rawNotes = [];
+  try { var r=db.exec('SELECT id,mid,tags,flds FROM notes ORDER BY id'); if(r.length) rawNotes=r[0].values; } catch(_){}
+
+  S.noteTypes = noteTypes;
+  S.notes = rawNotes.map(function(r) {
+    return { id:String(r[0]), mid:String(r[1]), tags:r[2]||'', fields:String(r[3]).split('\x1f') };
+  });
+
+  renderSidebar();
+  var firstMid = Object.keys(S.noteTypes)[0];
+  if (firstMid) selectNT(firstMid);
+  showDlBar();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DEMO
+// ══════════════════════════════════════════════════════════════════
+function loadDemo() {
+  S.filename = 'demo';
+  S.noteTypes = {
+    '1699000001': {
+      id:'1699000001', name:'Basic', type:0, sortf:0,
+      css:'.card {\n  font-family: "Helvetica Neue", sans-serif;\n  font-size: 20px;\n  text-align: center;\n  color: #1a1a2e;\n  background: #fff;\n  padding: 32px 24px;\n  min-height: 160px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n.front { font-size: 24px; font-weight: 600; }\n.back { font-size: 18px; color: #444; margin-top: 8px; }',
+      flds:[{name:'Front',ord:0,sticky:false,rtl:false,font:'Arial',size:20},{name:'Back',ord:1,sticky:false,rtl:false,font:'Arial',size:20}],
+      tmpls:[{name:'Card 1',ord:0,qfmt:'<div class="front">{{Front}}</div>',afmt:'{{FrontSide}}\n<hr id="answer">\n<div class="back">{{Back}}</div>'}],
+      noteCount:3,
+    },
+    '1699000002': {
+      id:'1699000002', name:'Basic (reversed)', type:0, sortf:0,
+      css:'.card { font-family: arial; font-size: 20px; text-align: center; color: black; background: white; padding: 24px; }',
+      flds:[{name:'Front',ord:0,sticky:false,rtl:false,font:'Arial',size:20},{name:'Back',ord:1,sticky:false,rtl:false,font:'Arial',size:20}],
+      tmpls:[
+        {name:'Card 1',ord:0,qfmt:'{{Front}}',afmt:'{{FrontSide}}<hr id="answer">{{Back}}'},
+        {name:'Card 2',ord:1,qfmt:'{{Back}}',afmt:'{{FrontSide}}<hr id="answer">{{Front}}'},
+      ],
+      noteCount:5,
+    },
+    '1699000003': {
+      id:'1699000003', name:'Cloze', type:1, sortf:0,
+      css:'.card { font-family: arial; font-size: 20px; text-align: center; color: black; background: white; padding: 24px; }\n.cloze { font-weight: bold; color: #00a; }',
+      flds:[{name:'Text',ord:0,sticky:false,rtl:false,font:'Arial',size:20},{name:'Extra',ord:1,sticky:false,rtl:false,font:'Arial',size:20}],
+      tmpls:[{name:'Cloze',ord:0,qfmt:'{{cloze:Text}}',afmt:'{{cloze:Text}}\n<hr id="answer">\n{{Extra}}'}],
+      noteCount:4,
+    },
+  };
+  S.notes = [
+    {id:'1699100001',mid:'1699000001',tags:'demo science',fields:['What is the speed of light?','~3\xd710\u2078 m/s']},
+    {id:'1699100002',mid:'1699000001',tags:'demo',fields:['Capital of France','Paris']},
+    {id:'1699100003',mid:'1699000001',tags:'demo math',fields:['\u222bx dx','x\xb2/2 + C']},
+    {id:'1699100004',mid:'1699000002',tags:'demo',fields:['Apple','A fruit']},
+    {id:'1699100005',mid:'1699000003',tags:'demo',fields:['The {{c1::mitochondria}} is the powerhouse of the cell.','Cell biology']},
+  ];
+  S.media = {}; S.mediaBlobs = {}; S._mediaUrls = {};
+  renderSidebar(); selectNT('1699000001'); showDlBar();
+  toast('Demo loaded', 'ok');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════════════════
+function renderSidebar() {
+  var list = document.getElementById('nt-list');
+  var count = document.getElementById('nt-count');
+  var nts = Object.values(S.noteTypes);
+  count.textContent = nts.length;
+  list.innerHTML = nts.map(function(nt) {
+    return '<div class="nt-item' + (S.selected===nt.id?' active':'') + '" onclick="selectNT(\'' + nt.id + '\')">'
+      + '<div class="nt-badge">' + (nt.type===1?'C':'B') + '</div>'
+      + '<div class="nt-info">'
+      + '<div class="nt-name">' + h(nt.name) + '</div>'
+      + '<div class="nt-meta">' + nt.noteCount + ' notes \xb7 ' + nt.flds.length + ' fields</div>'
+      + '</div></div>';
+  }).join('');
+}
+
+function selectNT(mid) {
+  S.selected = mid; S.cardIdx = 0; S.previewSide = 'front';
+  var nt = S.noteTypes[mid];
+  S.pf = {};
+  nt.flds.forEach(function(f) { S.pf[f.name] = ''; });
+  var n = S.notes.find(function(n) { return n.mid === mid; });
+  if (n) nt.flds.forEach(function(f,i) { S.pf[f.name] = n.fields[i]||''; });
+  renderSidebar();
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('ntbar').classList.add('show');
+  document.getElementById('nt-title').textContent = nt.name;
+  document.getElementById('nt-type-chip').textContent = nt.type===1?'cloze':'standard';
+  closeSb(); renderPanel();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════════
+function switchTab(el) {
+  document.querySelectorAll('#tab-row .tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  S.activeTab = el.dataset.tab;
+  renderPanel();
+}
+
+function renderPanel() {
+  if (!S.selected) return;
+  ['fields','templates','preview','notes','media'].forEach(function(p){
+    document.getElementById(p+'-p').style.display='none';
+  });
+  document.getElementById(S.activeTab+'-p').style.display='block';
+  var nt = S.noteTypes[S.selected];
+  if (S.activeTab==='fields') renderFields(nt);
+  else if (S.activeTab==='templates') renderTemplates(nt);
+  else if (S.activeTab==='preview') renderPreview(nt);
+  else if (S.activeTab==='notes') renderNotes(nt);
+  else if (S.activeTab==='media') renderMedia();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FIELDS
+// ══════════════════════════════════════════════════════════════════
+function renderFields(nt) {
+  var p = document.getElementById('fields-p');
+  p.innerHTML = '<div class="chip-row">'
+    + '<div class="chip"><strong>' + h(nt.name) + '</strong></div>'
+    + '<div class="chip mono-id">id: ' + nt.id + '</div>'
+    + '<div class="chip">' + nt.flds.length + ' fields</div>'
+    + '<div class="chip">' + nt.noteCount + ' notes</div>'
+    + '<div class="chip">' + (nt.type===1?'Cloze':'Standard') + '</div>'
+    + '</div>'
+    + '<div class="sec"><div class="sec-head"><span class="sec-label">Fields</span>'
+    + '<button class="btn btn-ghost btn-xs" onclick="addField()">+ Add field</button></div>'
+    + '<div class="field-list" id="fl"></div></div>'
+    + '<div class="sec"><div class="sec-label mb8">Sort field</div>'
+    + '<select class="form-input" style="width:auto" onchange="setSortField(this.value)">'
+    + nt.flds.map(function(f,i){return '<option value="'+i+'"'+(nt.sortf===i?' selected':'')+'>'+h(f.name)+'</option>';}).join('')
+    + '</select></div>'
+    + '<hr class="divider"><div class="row-wrap">'
+    + '<button class="btn btn-primary btn-sm" onclick="saveAndRefresh()">Save changes</button>'
+    + '<button class="btn btn-danger btn-sm" onclick="deleteNT()">Delete note type</button>'
+    + '</div>';
+  renderFieldList(nt); initDrag();
+}
+
+function renderFieldList(nt) {
+  var fl = document.getElementById('fl');
+  if (!fl) return;
+  fl.innerHTML = nt.flds.map(function(f,i) {
+    return '<div class="field-row" data-i="'+i+'" draggable="true">'
+      + '<span class="drag-handle">\u2837</span>'
+      + '<input class="field-input" value="'+h(f.name)+'" placeholder="Field name" onchange="updateField('+i+',\'name\',this.value)">'
+      + '<span class="ord-badge">#'+i+'</span>'
+      + '<span class="sort-star'+(nt.sortf===i?' active':'')+'" onclick="setSortField('+i+')">\u2605</span>'
+      + '<button class="btn btn-ghost btn-xs btn-icon" onclick="removeField('+i+')" title="Remove">\u2715</button>'
+      + '</div>';
+  }).join('');
+}
+
+function updateField(i, key, val) {
+  var nt = S.noteTypes[S.selected];
+  if (key==='name') { var old=nt.flds[i].name; nt.flds[i].name=val; if(S.pf[old]!==undefined){S.pf[val]=S.pf[old];delete S.pf[old];} }
+  S.dirty=true;
+}
+function addField() {
+  var nt=S.noteTypes[S.selected]; var name='Field '+(nt.flds.length+1);
+  nt.flds.push({name:name,ord:nt.flds.length,sticky:false,rtl:false,font:'Arial',size:20});
+  S.pf[name]=''; S.dirty=true; renderFields(nt);
+}
+function removeField(i) {
+  var nt=S.noteTypes[S.selected];
+  if(nt.flds.length<=1){toast('Need at least one field','err');return;}
+  delete S.pf[nt.flds[i].name]; nt.flds.splice(i,1); nt.flds.forEach(function(f,j){f.ord=j;}); S.dirty=true; renderFields(nt);
+}
+function setSortField(idx) { S.noteTypes[S.selected].sortf=Number(idx); S.dirty=true; renderFields(S.noteTypes[S.selected]); }
+
+function initDrag() {
+  var fl=document.getElementById('fl'); if(!fl) return;
+  var drag=null, over=null;
+  fl.querySelectorAll('.field-row').forEach(function(row) {
+    row.addEventListener('dragstart',function(e){drag=row;setTimeout(function(){row.classList.add('dragging');},0);e.dataTransfer.effectAllowed='move';});
+    row.addEventListener('dragend',function(){
+      row.classList.remove('dragging');
+      fl.querySelectorAll('.field-row').forEach(function(r){r.classList.remove('drag-over');});
+      if(drag&&over&&drag!==over){
+        var nt=S.noteTypes[S.selected],from=parseInt(drag.dataset.i),to=parseInt(over.dataset.i);
+        var moved=nt.flds.splice(from,1)[0]; nt.flds.splice(to,0,moved);
+        nt.flds.forEach(function(f,j){f.ord=j;}); S.dirty=true; renderFields(nt);
+      }
+      drag=null;over=null;
+    });
+    row.addEventListener('dragover',function(e){e.preventDefault();over=row;fl.querySelectorAll('.field-row').forEach(function(r){r.classList.remove('drag-over');});row.classList.add('drag-over');});
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TEMPLATES
+// ══════════════════════════════════════════════════════════════════
+function renderTemplates(nt) {
+  var card = nt.tmpls[S.cardIdx] || nt.tmpls[0];
+  var p = document.getElementById('templates-p');
+  var allTokens = nt.flds.map(function(f){
+    return '<span class="field-token" onclick="insertToken(\'{{'+h(f.name)+'}}\',event)">{{'+h(f.name)+'}}</span>';
+  }).join('');
+  var frontTokens = ['{{FrontSide}}'].concat(nt.flds.map(function(f){return '{{'+h(f.name)+'}}';}).join(''));
+  var ftHtml = ['{{FrontSide}}'].concat(nt.flds.map(function(f){return '{{'+f.name+'}}'})).map(function(t){
+    return '<span class="field-token" onclick="insertToken(\''+t.replace(/'/g,"\\'")+ '\',event)">'+h(t)+'</span>';
+  }).join('');
+
+  var chips = nt.tmpls.map(function(t,i){
+    return '<div class="tmpl-chip'+(i===S.cardIdx?' active':'')+'" onclick="selectCard('+i+')">'+h(t.name)+'</div>';
+  }).join('');
+
+  var sub = S.tmplSubTab;
+  p.innerHTML = '<div class="sec-head mb8"><span class="sec-label">Card Templates</span>'
+    + '<button class="btn btn-ghost btn-xs" onclick="addTemplate()">+ Add card</button></div>'
+    + '<div class="tmpl-picker">' + chips + '</div>'
+    + (card ? (
+      '<div class="sec mb12"><div class="sec-label mb8">Card name</div><div class="row mb4">'
+      + '<input class="form-input" value="'+h(card.name)+'" placeholder="Card name" oninput="updateTmpl(\'name\',this.value)" style="max-width:280px">'
+      + (nt.tmpls.length>1?'<button class="btn btn-danger btn-sm" onclick="removeTemplate()">Delete card</button>':'')
+      + '</div></div>'
+      + '<div class="tmpl-sub-tabs">'
+      + '<button class="tmpl-sub-tab'+(sub==='front'?' active':'')+'" onclick="switchTmplTab(\'front\')">Front Template</button>'
+      + '<button class="tmpl-sub-tab'+(sub==='back'?' active':'')+'" onclick="switchTmplTab(\'back\')">Back Template</button>'
+      + '<button class="tmpl-sub-tab'+(sub==='css'?' active':'')+'" onclick="switchTmplTab(\'css\')">Styling (CSS)</button>'
+      + '</div>'
+      + '<div class="tmpl-sub-panel'+(sub==='front'?' active':'') + '">'
+      + '<div class="sec-label mb6">Fields \u2014 click to insert</div>'
+      + '<div class="field-token-list mb8">' + allTokens + '</div>'
+      + '<textarea class="code-area" style="min-height:180px" oninput="updateTmpl(\'qfmt\',this.value)">'+h(card.qfmt)+'</textarea>'
+      + '</div>'
+      + '<div class="tmpl-sub-panel'+(sub==='back'?' active':'') + '">'
+      + '<div class="sec-label mb6">Available \u2014 click to insert</div>'
+      + '<div class="field-token-list mb8">' + ftHtml + '</div>'
+      + '<textarea class="code-area" style="min-height:180px" oninput="updateTmpl(\'afmt\',this.value)">'+h(card.afmt)+'</textarea>'
+      + '</div>'
+      + '<div class="tmpl-sub-panel'+(sub==='css'?' active':'') + '">'
+      + '<div class="sec-label mb6">Shared CSS</div>'
+      + '<textarea class="code-area" style="min-height:220px" oninput="updateCSS(this.value)">'+h(nt.css)+'</textarea>'
+      + '</div>'
+      + '<hr class="divider"><div class="row-wrap">'
+      + '<button class="btn btn-primary btn-sm" onclick="saveAndRefresh()">Save</button>'
+      + '<button class="btn btn-ghost btn-sm" onclick="previewCurrent()">Preview \u2192</button>'
+      + '</div>'
+    ) : '');
+}
+
+function switchTmplTab(tab) { S.tmplSubTab=tab; renderTemplates(S.noteTypes[S.selected]); }
+function selectCard(i) { S.cardIdx=i; renderTemplates(S.noteTypes[S.selected]); }
+function updateTmpl(key,val) { var nt=S.noteTypes[S.selected]; if(nt.tmpls[S.cardIdx]) nt.tmpls[S.cardIdx][key]=val; S.dirty=true; }
+function updateCSS(val) { S.noteTypes[S.selected].css=val; S.dirty=true; }
+function addTemplate() {
+  var nt=S.noteTypes[S.selected];
+  var newQfmt='{{'+((nt.flds[0]||{}).name||'Front')+'}}'; var newAfmt='{{FrontSide}}\n<hr id="answer">\n{{'+((nt.flds[1]||{}).name||'Back')+'}}'; nt.tmpls.push({name:'Card '+(nt.tmpls.length+1),ord:nt.tmpls.length,qfmt:newQfmt,afmt:newAfmt});
+  S.cardIdx=nt.tmpls.length-1; S.dirty=true; renderTemplates(nt);
+}
+function removeTemplate() {
+  var nt=S.noteTypes[S.selected];
+  if(nt.tmpls.length<=1){toast('Need at least one template','err');return;}
+  nt.tmpls.splice(S.cardIdx,1); S.cardIdx=Math.max(0,S.cardIdx-1); S.dirty=true; renderTemplates(nt);
+}
+function previewCurrent() {
+  document.querySelectorAll('#tab-row .tab').forEach(function(t){t.classList.toggle('active',t.dataset.tab==='preview');});
+  S.activeTab='preview'; renderPanel();
+}
+function insertToken(token, e) {
+  var panel=e.target.closest('.tmpl-sub-panel'); if(!panel) return;
+  var ta=panel.querySelector('textarea'); if(!ta) return;
+  var s=ta.selectionStart,en=ta.selectionEnd,v=ta.value;
+  ta.value=v.slice(0,s)+token+v.slice(en);
+  ta.selectionStart=ta.selectionEnd=s+token.length; ta.focus();
+  ta.dispatchEvent(new Event('input'));
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PREVIEW
+// ══════════════════════════════════════════════════════════════════
+function renderPreview(nt) {
+  var card = nt.tmpls[S.cardIdx] || nt.tmpls[0];
+  var p = document.getElementById('preview-p');
+  var chips = nt.tmpls.map(function(t,i){
+    return '<div class="tmpl-chip'+(i===S.cardIdx?' active':'')+'" style="padding:4px 10px;font-size:11px" onclick="selectCardPv('+i+')">'+h(t.name)+'</div>';
+  }).join('');
+  var fields = nt.flds.map(function(f){
+    return '<label class="pf-label" title="'+h(f.name)+'">'+h(f.name)+'</label>'
+      + '<input class="pf-input" value="'+h(S.pf[f.name]||'')+'" oninput="S.pf[\''+js(f.name)+'\']=this.value;refreshFrame()">';
+  }).join('');
+
+  p.innerHTML = '<div class="sec"><div class="sec-head mb4"><span class="sec-label">Card</span>'
+    + '<div class="row">' + chips + '</div></div></div>'
+    + '<div class="sec"><div class="sec-label mb8">Field values</div>'
+    + '<div class="pf-grid">' + fields + '</div></div>'
+    + '<div class="preview-wrap"><div class="preview-topbar">'
+    + '<div class="preview-dots"><div class="preview-dot d1"></div><div class="preview-dot d2"></div><div class="preview-dot d3"></div></div>'
+    + '<span class="preview-title" id="pv-title">' + S.previewSide.toUpperCase() + ' \xb7 ' + h(card?card.name:'') + '</span>'
+    + '<button class="flip-btn" onclick="flipPreview()">flip \u2194</button>'
+    + '</div><iframe class="preview-frame" id="pv-frame" sandbox="allow-same-origin" scrolling="no"></iframe></div>';
+  refreshFrame();
+}
+
+function selectCardPv(i) { S.cardIdx=i; renderPreview(S.noteTypes[S.selected]); }
+function flipPreview() {
+  S.previewSide = S.previewSide==='front'?'back':'front';
+  var el=document.getElementById('pv-title'); var card=S.noteTypes[S.selected].tmpls[S.cardIdx];
+  if(el) el.textContent=S.previewSide.toUpperCase()+' \xb7 '+(card?card.name:'');
+  refreshFrame();
+}
+function refreshFrame() {
+  var nt=S.noteTypes[S.selected]; if(!nt) return;
+  var card=nt.tmpls[S.cardIdx]||nt.tmpls[0]; if(!card) return;
+  var frame=document.getElementById('pv-frame'); if(!frame) return;
+  var tmpl = S.previewSide==='front' ? card.qfmt : card.afmt;
+  var rendered = renderTmpl(tmpl, nt, card);
+  frame.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body,html{margin:0;padding:0;}.card{box-sizing:border-box;min-height:120px;word-wrap:break-word;}' + nt.css + '</style></head><body><div class="card">' + rendered + '</div></body></html>';
+  frame.onload = function() { try { frame.style.height = Math.max(140, frame.contentDocument.body.scrollHeight+10)+'px'; } catch(_){} };
+}
+function renderTmpl(tmpl, nt, card) {
+  var out = String(tmpl||''), vals = S.pf;
+  if (out.indexOf('{{FrontSide}}') >= 0) out = out.replace(/\{\{FrontSide\}\}/g, renderTmpl(card.qfmt, nt, card));
+  out = out.replace(/\{\{#([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, function(_,n,inner){ return (vals[n]||'').trim()?inner:''; });
+  out = out.replace(/\{\{\^([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, function(_,n,inner){ return (vals[n]||'').trim()?'':inner; });
+  out = out.replace(/\{\{cloze:([^}]+)\}\}/g, function(_,n){
+    var v=vals[n]||'';
+    return S.previewSide==='front'
+      ? v.replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g,'<span class="cloze">[...]</span>')
+      : v.replace(/\{\{c\d+::(.*?)(?:::[^}]*)?\}\}/g,'<span class="cloze">$1</span>');
+  });
+  out = out.replace(/\{\{([^#\/\^][^}]*?)\}\}/g, function(_,raw){
+    var name=raw.trim().replace(/^[^:]+:/,'');
+    return vals[name]!==undefined ? (vals[name]||'') : '<span style="color:#bbb;font-style:italic">{{'+raw+'}}</span>';
+  });
+  return out;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NOTES
+// ══════════════════════════════════════════════════════════════════
+function renderNotes(nt) {
+  var notes = S.notes.filter(function(n){return n.mid===nt.id;}), p=document.getElementById('notes-p'), MAX=200;
+  if (!notes.length) { p.innerHTML='<div class="text-dim" style="padding:20px 0">No notes for this note type.</div>'; return; }
+  var thead = '<th>Note ID</th>' + nt.flds.map(function(f){return '<th>'+h(f.name)+'</th>';}).join('') + '<th>Tags</th><th></th>';
+  var tbody = notes.slice(0,MAX).map(function(n){
+    return '<tr><td class="id-cell">'+n.id+'</td>'
+      + nt.flds.map(function(f,i){return '<td title="'+h(n.fields[i]||'')+'">'+h((n.fields[i]||'').replace(/<[^>]+>/g,'').slice(0,60))+'</td>';}).join('')
+      + '<td>'+h(n.tags)+'</td>'
+      + '<td><button class="use-note-btn" onclick="useNote(\''+n.id+'\')">Preview</button></td>'
+      + '</tr>';
+  }).join('');
+  p.innerHTML = '<div class="chip-row mb12"><div class="chip"><strong>'+notes.length+'</strong> notes</div></div>'
+    + '<div class="table-wrap" style="max-height:55vh"><table class="nt-table"><thead><tr>'+thead+'</tr></thead><tbody>'+tbody+'</tbody></table></div>'
+    + (notes.length>MAX?'<div class="text-xs mt8">Showing '+MAX+' of '+notes.length+'</div>':'');
+}
+function useNote(nid) {
+  var n=S.notes.find(function(x){return x.id===nid;}); if(!n) return;
+  var nt=S.noteTypes[S.selected]; nt.flds.forEach(function(f,i){S.pf[f.name]=n.fields[i]||'';});
+  document.querySelectorAll('#tab-row .tab').forEach(function(t){t.classList.toggle('active',t.dataset.tab==='preview');});
+  S.activeTab='preview'; renderPanel(); toast('Note loaded','ok');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MEDIA
+// ══════════════════════════════════════════════════════════════════
+function renderMedia() {
+  var p=document.getElementById('media-p'), entries=Object.entries(S.media);
+  if (!entries.length) {
+    p.innerHTML='<div style="padding:32px 0;text-align:center;color:var(--t2)"><div style="font-size:32px;margin-bottom:12px">\ud83d\uddbc</div><div style="font-size:14px;font-weight:500">No media files</div><div style="font-size:12px;color:var(--t3);margin-top:6px">Import a deck with media, or none present.</div></div>';
+    return;
+  }
+  var imgExts=/\.(png|jpg|jpeg|gif|svg|webp)$/i, audExts=/\.(mp3|ogg|wav|m4a|flac|opus)$/i;
+  var images=entries.filter(function(e){return imgExts.test(e[1]);}),
+      audio=entries.filter(function(e){return audExts.test(e[1]);}),
+      others=entries.filter(function(e){return !imgExts.test(e[1])&&!audExts.test(e[1]);});
+  if (!S._mediaUrls) S._mediaUrls={};
+  entries.forEach(function(kv){
+    var fn=kv[1];
+    if (!S._mediaUrls[fn] && S.mediaBlobs[fn]) {
+      var mime = imgExts.test(fn)?'image/'+fn.split('.').pop().replace('jpg','jpeg').toLowerCase()
+               : audExts.test(fn)?'audio/'+fn.split('.').pop().toLowerCase()
+               : 'application/octet-stream';
+      S._mediaUrls[fn]=URL.createObjectURL(new Blob([S.mediaBlobs[fn]],{type:mime}));
+    }
+  });
+  var blobCount=Object.keys(S.mediaBlobs).length;
+  var out='<div class="chip-row mb12">'
+    +'<div class="chip"><strong>'+entries.length+'</strong> files</div>'
+    +(images.length?'<div class="chip">'+images.length+' images</div>':'')
+    +(audio.length?'<div class="chip">'+audio.length+' audio</div>':'')
+    +(others.length?'<div class="chip">'+others.length+' other</div>':'')
+    +(blobCount<entries.length?'<div class="chip" style="color:var(--yellow)">\u26a0 '+( entries.length-blobCount)+' not loaded</div>':'')
+    +'<button class="btn btn-ghost btn-sm" onclick="downloadAllMedia()" style="margin-left:auto">\u2193 Download all</button>'
+    +'</div>';
+  if (images.length) out+='<div class="sec-label mb8">Images</div><div class="media-grid mb16">'+images.map(function(kv){return mediaCard(kv[1],'img');}).join('')+'</div>';
+  if (audio.length) out+='<div class="sec-label mb8">Audio</div><div class="col mb16" style="gap:6px">'+audio.map(function(kv){return mediaCard(kv[1],'audio');}).join('')+'</div>';
+  if (others.length) out+='<div class="sec-label mb8">Other</div><div class="col mb16" style="gap:5px">'+others.map(function(kv){return mediaCard(kv[1],'other');}).join('')+'</div>';
+  p.innerHTML=out;
+}
+function mediaCard(fn, type) {
+  var url=S._mediaUrls&&S._mediaUrls[fn], has=!!S.mediaBlobs[fn], ext=fn.split('.').pop().toUpperCase();
+  var fnSafe=fn.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  if (type==='img') return '<div class="media-card" title="'+h(fn)+'">'
+    +'<div class="media-thumb">'+(url?'<img src="'+url+'" alt="'+h(fn)+'" loading="lazy" onclick="openMediaPreview(\''+fnSafe+'\')" style="cursor:zoom-in">':'<span style="font-size:22px;color:var(--t3)">\ud83d\uddbc</span>')+'</div>'
+    +'<div class="media-name">'+h(fn)+'</div>'
+    +'<div class="media-actions">'+(url?'<button class="btn btn-ghost btn-xs" onclick="openMediaPreview(\''+fnSafe+'\')">&#x2922;</button>':'')+(has?'<button class="btn btn-ghost btn-xs" onclick="downloadMedia(\''+fnSafe+'\')">\u2193</button>':'<span style="font-size:10px;color:var(--t3)">no data</span>')+'</div>'
+    +'</div>';
+  if (type==='audio') return '<div class="field-row" style="padding:8px 12px;gap:10px">'
+    +'<span style="font-size:18px">\ud83d\udd0a</span>'
+    +'<span style="flex:1;font-family:var(--mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+h(fn)+'">'+h(fn)+'</span>'
+    +(url?'<audio controls style="height:28px;max-width:180px" src="'+url+'"></audio>':'<span style="font-size:11px;color:var(--t3)">not loaded</span>')
+    +(has?'<button class="btn btn-ghost btn-xs" onclick="downloadMedia(\''+fnSafe+'\')">\u2193</button>':'')
+    +'</div>';
+  return '<div class="field-row" style="padding:8px 12px;gap:10px">'
+    +'<span style="font-family:var(--mono);font-size:10px;background:var(--s3);padding:2px 5px;border-radius:3px;color:var(--t2);flex-shrink:0">'+h(ext)+'</span>'
+    +'<span style="flex:1;font-family:var(--mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+h(fn)+'">'+h(fn)+'</span>'
+    +(has?'<button class="btn btn-ghost btn-xs" onclick="downloadMedia(\''+fnSafe+'\')">\u2193</button>':'<span style="font-size:11px;color:var(--t3)">not loaded</span>')
+    +'</div>';
+}
+function openMediaPreview(fn) {
+  var url=S._mediaUrls&&S._mediaUrls[fn]; if(!url){toast('No data for '+fn,'err');return;}
+  var lb=document.getElementById('media-lightbox'); if(lb) lb.remove();
+  lb=document.createElement('div'); lb.id='media-lightbox';
+  lb.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9995;display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out';
+  lb.onclick=function(){lb.remove();};
+  var fnSafe=fn.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  lb.innerHTML='<div style="position:relative;max-width:90vw;max-height:90vh">'
+    +'<img src="'+url+'" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:6px;display:block">'
+    +'<div style="position:absolute;bottom:-28px;left:0;right:0;text-align:center;font-family:monospace;font-size:11px;color:rgba(255,255,255,.6)">'+h(fn)+'</div>'
+    +'<button onclick="downloadMedia(\''+fnSafe+'\');event.stopPropagation()" style="position:absolute;top:-36px;right:0;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:5px;padding:5px 10px;cursor:pointer;font-size:12px">\u2193 Download</button>'
+    +'</div>';
+  document.body.appendChild(lb);
+  document.addEventListener('keydown',function esc(e){if(e.key==='Escape'){lb.remove();document.removeEventListener('keydown',esc);}});
+}
+function downloadMedia(fn) { var b=S.mediaBlobs[fn]; if(!b){toast('No data','err');return;} dl(new Blob([b]),fn); }
+function downloadAllMedia() {
+  var e=Object.entries(S.mediaBlobs); if(!e.length){toast('No media','err');return;}
+  e.forEach(function(kv){dl(new Blob([kv[1]]),kv[0]);}); toast('Downloading '+e.length+' files','ok');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NOTE TYPE MANAGEMENT
+// ══════════════════════════════════════════════════════════════════
+function newNT() {
+  var mid=Date.now().toString();
+  S.noteTypes[mid]={id:mid,name:'New Note Type',type:0,sortf:0,
+    css:'.card {\n  font-family: arial;\n  font-size: 20px;\n  text-align: center;\n  color: black;\n  background-color: white;\n}',
+    flds:[{name:'Front',ord:0,sticky:false,rtl:false,font:'Arial',size:20},{name:'Back',ord:1,sticky:false,rtl:false,font:'Arial',size:20}],
+    tmpls:[{name:'Card 1',ord:0,qfmt:'{{Front}}',afmt:'{{FrontSide}}\n<hr id="answer">\n{{Back}}'}],
+    noteCount:0};
+  renderSidebar(); selectNT(mid); showDlBar(); toast('New note type created','ok');
+}
+function deleteNT() {
+  if(Object.keys(S.noteTypes).length<=1){toast('Cannot delete last','err');return;}
+  delete S.noteTypes[S.selected]; S.notes=S.notes.filter(function(n){return n.mid!==S.selected;});
+  var next=Object.keys(S.noteTypes)[0]; renderSidebar(); selectNT(next);
+}
+function saveAndRefresh() {
+  var nt=S.noteTypes[S.selected];
+  document.getElementById('nt-title').textContent=nt.name;
+  document.getElementById('nt-type-chip').textContent=nt.type===1?'cloze':'standard';
+  renderSidebar(); S.dirty=false; toast('Saved','ok'); renderPanel();
+}
+function openRenameModal() { document.getElementById('rename-input').value=S.noteTypes[S.selected].name; openModal('rename-modal'); }
+function doRename() {
+  var val=document.getElementById('rename-input').value.trim(); if(!val) return;
+  S.noteTypes[S.selected].name=val; document.getElementById('nt-title').textContent=val;
+  renderSidebar(); closeModal('rename-modal'); toast('Renamed','ok');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DOWNLOADS
+// ══════════════════════════════════════════════════════════════════
+function downloadJSON() {
+  var out={};
+  Object.entries(S.noteTypes).forEach(function(kv){var mid=kv[0],nt=kv[1];out[mid]={id:nt.id,name:nt.name,type:nt.type,sortf:nt.sortf,css:nt.css,flds:nt.flds,tmpls:nt.tmpls};});
+  dl(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}),(S.filename||'anki')+'-models.json');
+  toast('Downloading JSON','ok');
+}
+function downloadCSV() {
+  if(!S.notes.length){toast('No notes','err');return;}
+  var nts=S.noteTypes;
+  var allFields=[]; var seen={};
+  S.notes.forEach(function(n){(nts[n.mid]&&nts[n.mid].flds||[]).forEach(function(f){if(!seen[f.name]){seen[f.name]=1;allFields.push(f.name);}});});
+  var rows=['Note ID,Note Type,Tags,'+allFields.join(',')];
+  S.notes.forEach(function(n){
+    var nt=nts[n.mid]; var fNames=(nt&&nt.flds||[]).map(function(f){return f.name;});
+    var fmap={}; fNames.forEach(function(f,i){fmap[f]=n.fields[i]||'';});
+    rows.push([n.id,csvCell(nt&&nt.name||''),csvCell(n.tags)].concat(allFields.map(function(f){return csvCell(fmap[f]||'');})).join(','));
+  });
+  dl(new Blob([rows.join('\n')],{type:'text/csv'}),(S.filename||'anki')+'-notes.csv');
+  toast('Downloading CSV','ok');
+}
+async function downloadAPKG() {
+  if(!window.JSZip){toast('JSZip not ready','err');return;}
+  if(!window.SQL||!S.rawDb){downloadJSON();return;}
+  load('Building .apkg\u2026');
+  try {
+    var db=new SQL.Database(S.rawDb.slice());
+    var modelsOut={};
+    Object.entries(S.noteTypes).forEach(function(kv){
+      var mid=kv[0],nt=kv[1];
+      modelsOut[mid]={id:parseInt(nt.id),name:nt.name,type:nt.type,sortf:nt.sortf,css:nt.css,
+        flds:nt.flds.map(function(f,i){return{name:f.name,ord:i,sticky:f.sticky||false,rtl:f.rtl||false,font:f.font||'Arial',size:f.size||20,media:[]};}),
+        tmpls:nt.tmpls.map(function(t,i){return{name:t.name,ord:i,qfmt:t.qfmt,afmt:t.afmt,did:null,bqfmt:'',bafmt:''};}),
+        mod:Math.floor(Date.now()/1000),usn:-1,req:[],tags:[],vers:[]};
+    });
+    var tc=db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='notetypes'");
+    if(tc.length&&tc[0].values.length) {
+      Object.entries(S.noteTypes).forEach(function(kv){
+        var mid=kv[0],nt=kv[1];
+        try{db.run('UPDATE notetypes SET name=?,mtime_secs=? WHERE id=?',[nt.name,Math.floor(Date.now()/1000),parseInt(mid)]);}catch(_){}
+        nt.tmpls.forEach(function(t){try{db.run('UPDATE templates SET name=?,mtime_secs=? WHERE ntid=? AND ord=?',[t.name,Math.floor(Date.now()/1000),parseInt(mid),t.ord]);}catch(_){}});
+        nt.flds.forEach(function(f){try{db.run('UPDATE fields SET name=? WHERE ntid=? AND ord=?',[f.name,parseInt(mid),f.ord]);}catch(_){}});
+      });
+    }
+    db.run('UPDATE col SET models=?,mod=? WHERE id=1',[JSON.stringify(modelsOut),Math.floor(Date.now()/1000)]);
+    var dbBytes=db.export(); db.close();
+    var zip=new JSZip();
+    zip.file('collection.anki21',dbBytes);
+    zip.file('media',JSON.stringify(S.media));
+    Object.entries(S.media).forEach(function(kv){if(S.mediaBlobs[kv[1]])zip.file(kv[0],S.mediaBlobs[kv[1]]);});
+    var blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+    dl(blob,(S.filename||'collection')+'-edited.apkg');
+    toast('Exported .apkg','ok');
+  } catch(e){toast('Export failed: '+e.message,'err');}
+  finally{unload();}
+}
+function csvCell(s){s=String(s||'').replace(/<[^>]+>/g,'');if(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)return '"'+s.replace(/"/g,'""')+'"';return s;}
+function dl(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},5000);}
+
+// ══════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════════════
+function showDlBar(){document.getElementById('dl-bar').classList.add('show');}
+function hideDlBar(){document.getElementById('dl-bar').classList.remove('show');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function toggleSb(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sb-overlay').classList.toggle('show');}
+function closeSb(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sb-overlay').classList.remove('show');}
+var _toastT;
+function toast(msg,type){var el=document.getElementById('toast');el.textContent=msg;el.className='show'+(type?' '+type:'');clearTimeout(_toastT);_toastT=setTimeout(function(){el.className='';},2800);}
+function load(msg){document.getElementById('loader').classList.add('on');document.getElementById('loader-msg').textContent=msg||'Loading\u2026';}
+function unload(){document.getElementById('loader').classList.remove('on');}
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function js(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+// Drag file onto page
+var _dc=0;
+document.addEventListener('dragenter',function(e){e.preventDefault();_dc++;document.getElementById('drop-mask').classList.add('show');});
+document.addEventListener('dragleave',function(){_dc--;if(_dc<=0){_dc=0;document.getElementById('drop-mask').classList.remove('show');}});
+document.addEventListener('dragover',function(e){e.preventDefault();});
+document.addEventListener('drop',function(e){e.preventDefault();_dc=0;document.getElementById('drop-mask').classList.remove('show');var f=e.dataTransfer.files[0];if(f)importFile(f);});
+
+document.querySelectorAll('.modal-overlay').forEach(function(el){el.addEventListener('click',function(e){if(e.target===el)el.classList.remove('open');});});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){document.querySelectorAll('.modal-overlay.open').forEach(function(m){m.classList.remove('open');});var lp=document.getElementById('log-panel');if(lp)lp.remove();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();if(S.selected)saveAndRefresh();}
+});
+
+</script>
+</body>
+</html>
